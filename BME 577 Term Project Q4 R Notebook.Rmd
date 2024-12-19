@@ -1,0 +1,62 @@
+---
+title: "577 Term Project 2"
+output: html_notebook
+---
+
+Question 4, Dataset 1: hvbp_efficiency_and_cost_reduction.csv
+```{r}
+setwd("C:/Users/valen/OneDrive - University of Arizona/577 Term Project")
+
+library(ggplot2)
+library(dplyr)
+
+hvbp <- read.csv("hvbp_efficiency_and_cost_reduction.csv")
+
+# Filtering relevant columns for regression
+hvbp_clean <- hvbp %>%
+  select(MSPB.1.Performance.Rate, MSPB.1.Measure.Score) %>%
+  mutate(
+    MSPB.1.Performance.Rate = as.numeric(MSPB.1.Performance.Rate),
+    MSPB.1.Measure.Score = as.numeric(gsub(" out of .*", "", MSPB.1.Measure.Score))
+  ) %>%
+  na.omit()
+
+# Regression
+hvbp_reg <- lm(MSPB.1.Measure.Score ~ MSPB.1.Performance.Rate, data = hvbp_clean)
+summary(hvbp_reg)
+
+# Plot 
+plot1 <- ggplot(hvbp_clean, aes(x = MSPB.1.Performance.Rate, y = MSPB.1.Measure.Score)) +
+  geom_point() + geom_smooth(method = "lm", col = "blue") + labs(title = "Regression Analysis for Hospital Value-Based Purchasing (HVBP) - Efficiency Scores",x = "Performance Rate",y = "Measure Score")
+print(plot1)
+
+```
+
+
+Question 4, Dataset 2: Medicare_Hospital_Spending_Per_Patient-Hospital.csv
+```{r}
+setwd("C:/Users/valen/OneDrive - University of Arizona/577 Term Project")
+
+Medicare_spending <- read.csv("Medicare_Hospital_Spending_Per_Patient-Hospital.csv")
+head(Medicare_spending)
+```
+
+```{r}
+# filtering the data to have only relevant column for analysis
+Medicare_spending_clean <- Medicare_spending %>%
+  select(Score) %>%
+  mutate(Score = as.numeric(Score)) %>%
+  na.omit()
+
+Medicare_spending_clean <- Medicare_spending_clean %>%
+  mutate(Cost.Reduction = 100 - Score) 
+
+# Regression
+Medicare_spending_reg <- lm(Cost.Reduction ~ Score, data = Medicare_spending_clean)
+summary(Medicare_spending_reg)
+
+# Plot 
+plot2 <- ggplot(Medicare_spending_clean, aes(x = Score, y = Cost.Reduction)) +
+  geom_point() + geom_smooth(method = "lm", col = "green") + labs(title = "Regression Analysis for Medicare Spending Per Beneficiary - Hospital", x = "Spending Score", y = "Cost Reduction")
+print(plot2)
+```

@@ -1,0 +1,102 @@
+---
+title: "577 Term Project"
+output: html_notebook
+---
+Question 2, Dataset 1: Maternal Health - State
+```{r}
+setwd("C:/Users/valen/OneDrive - University of Arizona/577 Term Project")
+
+maternal_health <- read.csv("Maternal_Health-State.csv")
+
+str(maternal_health)
+summary(maternal_health)
+head(maternal_health)
+
+```
+
+```{r}
+# Remove rows with no numerical vaues
+maternal_health <- na.omit(maternal_health)
+
+#geographic classifications
+maternal_health$Region <- ifelse(maternal_health$State %in% c("CA", "OR", "WA"), "West",
+                       ifelse(maternal_health$State %in% c("NY", "MA", "NJ"), "Northeast",
+                       ifelse(maternal_health$State %in% c("TX", "OK", "LA"), "South", "Midwest")))
+
+maternal_health <- maternal_health[-4, ]  
+maternal_health <- maternal_health[-12, ]
+maternal_health <- maternal_health[-26, ]
+maternal_health <- maternal_health[-48, ]
+
+print(maternal_health)
+
+```
+
+```{r}
+anova_result <- aov(Score ~ Region, data = maternal_health)
+summary(anova_result)
+
+TukeyHSD(anova_result)
+```
+
+```{r}
+str(maternal_health)
+
+is.numeric(maternal_health$Score)
+
+is.factor(maternal_health$Region)
+
+maternal_health$Score <- as.numeric(maternal_health$Score)
+
+maternal_health$Region <- as.factor(maternal_health$Region)
+
+boxplot(Score ~ Region, data = maternal_health, main = "Patient Outcomes by Region", xlab = "Region", ylab = "Score")
+
+```
+
+
+Question 2, Dataset 2: Medicaid and CHIP Eligibility Levels
+```{r}
+medicaid_chip <- read.csv("medicaid-and-chip-eligibility-levels.csv")
+
+str(medicaid_chip)
+summary(medicaid_chip)
+head(medicaid_chip)
+
+```
+
+```{r}
+# Remove rows with missing no data
+medicaid_data_clean_no_na <- na.omit(medicaid_chip[c("Medicaid.Ages.0.1", "Medicaid.Ages.1.5", "Medicaid.Ages.6.18", 
+                                                          "Separate.CHIP", "Pregnant.Women.Medicaid", "Expansion.to.Adults", "State")])
+
+library(car)
+
+regression_model_no_state <- lm(Medicaid.Ages.0.1 ~ Medicaid.Ages.1.5 + Medicaid.Ages.6.18 +
+                                 Separate.CHIP + Pregnant.Women.Medicaid + Expansion.to.Adults, 
+                                 data = medicaid_data_clean_no_na)
+
+vif(regression_model_no_state)
+
+regression_model_with_state <- lm(Medicaid.Ages.0.1 ~ factor(State) + Medicaid.Ages.1.5 + Medicaid.Ages.6.18 +
+                                  Separate.CHIP + Pregnant.Women.Medicaid + Expansion.to.Adults, 
+                                  data = medicaid_data_clean_no_na)
+
+summary(regression_model_with_state)
+
+regression_model_simplified <- lm(Medicaid.Ages.0.1 ~ Medicaid.Ages.1.5 + Medicaid.Ages.6.18 +
+                                  Separate.CHIP + Pregnant.Women.Medicaid + Expansion.to.Adults, 
+                                  data = medicaid_data_clean_no_na)
+
+summary(regression_model_simplified)
+
+par(mfrow = c(2, 2))
+plot(regression_model_simplified)
+
+
+vif(regression_model_simplified)
+
+anova_result2 <- anova(regression_model_no_state, regression_model_with_state, regression_model_simplified)
+print(anova_result2)
+```
+
