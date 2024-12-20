@@ -1,0 +1,133 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+Question 1: How do hospital readmission rates vary across demographic groups, and what factors contribute to these variations?
+
+Setup:
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(tigris)
+library(sf)
+
+setwd("C:/Users/caitl/OneDrive/Desktop/Folder/BME577")
+
+dataset1 <- read.csv("FY_2024_Hospital_Readmissions_Reduction_Program_Hospital.csv")
+dataset2 <- read.csv("FY_2024_SNF_VBP_Facility_Performance.csv")
+
+```
+
+Merging data:
+```{r}
+
+## select relevant columns from first dataset
+dataset1_clean <- dataset1 %>%
+  select(Facility.Name, Facility.ID, State, Measure.Name, Excess.Readmission.Ratio, 
+         Predicted.Readmission.Rate, Expected.Readmission.Rate) %>%
+  rename(FacilityName = Facility.Name, 
+         FacilityID = Facility.ID, 
+         MeasureName = Measure.Name, 
+         ExcessReadmissionRatio = Excess.Readmission.Ratio,
+         PredictedRate = Predicted.Readmission.Rate,
+         ExpectedRate = Expected.Readmission.Rate)
+
+## select relevant columns fromsecond dataset
+dataset2_clean <- dataset2 %>%
+  select(CMS.Certification.Number..CCN., Provider.Name, State, 
+         Baseline.Period..FY.2019.Risk.Standardized.Readmission.Rate, 
+         Performance.Period..FY.2022.Risk.Standardized.Readmission.Rate) %>%
+  rename(FacilityID = CMS.Certification.Number..CCN.,
+         FacilityName = Provider.Name,
+         BaselineRate = Baseline.Period..FY.2019.Risk.Standardized.Readmission.Rate,
+         PerformanceRate = Performance.Period..FY.2022.Risk.Standardized.Readmission.Rate)
+
+## merge the datasets using FacilityID and State
+merged_data <- dataset1_clean %>%
+  inner_join(dataset2_clean, by = c("FacilityID", "State"))
+
+## convert columns to numeric
+merged_data <- merged_data %>%
+  mutate(
+    ExcessReadmissionRatio = as.numeric(gsub("[^0-9.]", "", ExcessReadmissionRatio)),
+    PredictedRate = as.numeric(gsub("[^0-9.]", "", PredictedRate)),
+    ExpectedRate = as.numeric(gsub("[^0-9.]", "", ExpectedRate)),
+    BaselineRate = as.numeric(gsub("[^0-9.]", "", BaselineRate)),
+    PerformanceRate = as.numeric(gsub("[^0-9.]", "", PerformanceRate))
+  )
+
+## remove rows with NA values
+merged_data <- merged_data %>%
+  filter(!is.na(ExcessReadmissionRatio) & 
+         !is.na(PredictedRate) & 
+         !is.na(ExpectedRate) & 
+         !is.na(BaselineRate) & 
+         !is.na(PerformanceRate))
+
+```
+
+
+Descriptive Statistics:
+```{r}
+
+# min, max, mean, and median ERR
+summary(merged_data$ExcessReadmissionRatio)
+
+```
+
+T-test:
+```{r}
+
+# test if the mean ERR is significantly different from 1 (1 is the national benchmark)
+t_test_err <- t.test(merged_data$ExcessReadmissionRatio, mu = 1)
+t_test_err
+
+```
+ANOVA comparing ERR at a state level:
+```{r}
+
+# perform ANOVA to test differences in ERR across all states
+anova_state <- aov(ExcessReadmissionRatio ~ State, data = merged_data)
+summary(anova_state)
+
+
+```
+Tukey's HSD Test to determine which states are significantly different:
+```{r}
+
+tukey_test <- TukeyHSD(anova_state)
+tukey_test
+
+```
+
+Summary of meaan ERR for all included states:
+```{r}
+
+state_summary <- merged_data %>%
+  group_by(State) %>%
+  summarize(
+    Mean_ERR = mean(ExcessReadmissionRatio, na.rm = TRUE),
+    SD_ERR = sd(ExcessReadmissionRatio, na.rm = TRUE),
+    Count = n()
+  )
+state_summary
+
+
+```
+
+Visualization:
+```{r}
+
+ggplot(merged_data, aes(x = State, y = ExcessReadmissionRatio, fill = State)) +
+  geom_boxplot() +
+  labs(title = "Excess Readmission Ratio by State", x = "State", y = "Excess Readmission Ratio") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+```
+
+

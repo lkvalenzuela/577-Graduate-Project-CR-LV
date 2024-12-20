@@ -1,0 +1,304 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Question 3: How does the implementation of health IT systems, including EHRs and Clinical Decision Support systems, impact patient outcomes in terms of care quality and efficiency?
+
+Setup:
+```{r}
+
+library(dplyr)
+library(ggplot2)
+library(tigris)
+library(sf)
+library(tidyverse)
+library(corrplot)
+
+setwd("C:/Users/caitl/OneDrive/Desktop/Folder/BME577")
+
+dataset <- read.csv("Hospital_General_Information.csv")
+
+str(dataset)
+
+```
+
+Sorting by EHR usage:
+```{r}
+
+dataset <- dataset %>% 
+  mutate(EHR_Usage = ifelse(Meets.criteria.for.promoting.interoperability.of.EHRs == "Y", "EHR", "no-EHR"))
+
+EHR <- dataset %>%
+  filter(EHR_Usage == "EHR")
+
+no_EHR <- dataset %>%
+  filter(EHR_Usage == "no-EHR")
+
+# check the counts for each group
+cat("Number of hospitals using EHRs:", nrow(EHR), "\n")
+cat("Number of hospitals not using EHRs:", nrow(no_EHR), "\n")
+
+# clean and convert columns to numeric
+EHR <- EHR %>%
+  mutate(
+    Hospital.overall.rating = as.numeric(replace(Hospital.overall.rating, Hospital.overall.rating == "Not Available", NA)),
+    Count.of.READM.Measures.Better = as.numeric(replace(Count.of.READM.Measures.Better, Count.of.READM.Measures.Better == "Not Available", NA))
+  )
+
+no_EHR <- no_EHR %>%
+  mutate(
+    Hospital.overall.rating = as.numeric(replace(Hospital.overall.rating, Hospital.overall.rating == "Not Available", NA)),
+    Count.of.READM.Measures.Better = as.numeric(replace(Count.of.READM.Measures.Better, Count.of.READM.Measures.Better == "Not Available", NA))
+  )
+
+```
+
+Descriptive Statistics:
+```{r}
+
+# for hospitals using EHR
+summary(EHR$Hospital.overall.rating)
+summary(EHR$Count.of.READM.Measures.Better)
+
+# for hospitals not using EHR
+summary(no_EHR$Hospital.overall.rating)
+summary(no_EHR$Count.of.READM.Measures.Better)
+
+```
+```{r}
+
+# t-test for hospital overall ratings
+t_test_rating <- t.test(EHR$Hospital.overall.rating, no_EHR$Hospital.overall.rating, na.rm = TRUE)
+print(t_test_rating)
+
+```
+
+```{r}
+
+# t-test for count of READM measures better
+t_test_readm <- t.test(EHR$Count.of.READM.Measures.Better, no_EHR$Count.of.READM.Measures.Better, na.rm = TRUE)
+print(t_test_readm)
+
+```
+
+Box Plots:
+```{r}
+
+dataset <- dataset %>%
+  mutate(Hospital.overall.rating = as.numeric(replace(Hospital.overall.rating, Hospital.overall.rating == "Not Available", NA)))
+
+dataset_clean <- dataset %>%
+  filter(!is.na(Hospital.overall.rating))
+
+ggplot(dataset_clean, aes(x = EHR_Usage, y = Hospital.overall.rating, fill = EHR_Usage)) +
+  geom_boxplot() +
+  labs(title = "Overall Hospital Ratings by EHR Usage",
+       x = "EHR Usage",
+       y = "Hospital Overall Rating") +
+  theme_minimal() +
+  scale_fill_manual(values = c("EHR" = "lightblue", "no-EHR" = "pink"))
+
+```
+
+```{r}
+
+dataset <- dataset %>%
+  mutate(Count.of.READM.Measures.Better = as.numeric(replace(Count.of.READM.Measures.Better, Count.of.READM.Measures.Better == "Not Available", NA)))
+
+dataset_clean <- dataset %>%
+  filter(!is.na(Count.of.READM.Measures.Better))
+
+ggplot(dataset_clean, aes(x = EHR_Usage, y = Count.of.READM.Measures.Better, fill = EHR_Usage)) +
+  geom_boxplot() +
+  labs(title = "Count of READM Measures Better by EHR Usage",
+       x = "EHR Usage",
+       y = "Count of READM Measures Better") +
+  theme_minimal() +
+  scale_fill_manual(values = c("EHR" = "lightblue", "no-EHR" = "pink"))
+
+
+```
+
+```{r}
+
+dataset <- dataset %>%
+  mutate(Pt.Exp.Group.Measure.Count = as.numeric(replace(Pt.Exp.Group.Measure.Count, Pt.Exp.Group.Measure.Count == "Not Available", NA)))
+
+dataset_clean <- dataset %>%
+  filter(!is.na(Pt.Exp.Group.Measure.Count))
+
+ggplot(dataset_clean, aes(x = EHR_Usage, y = Pt.Exp.Group.Measure.Count, fill = EHR_Usage)) +
+  geom_boxplot() +
+  labs(title = "Patient Experience Group Measure Count by EHR Usage",
+       x = "EHR Usage",
+       y = "Patient Experience Measure Count") +
+  theme_minimal() +
+  scale_fill_manual(values = c("EHR" = "lightblue", "no-EHR" = "pink"))
+
+
+```
+
+```{r}
+
+dataset <- dataset %>%
+  mutate(Pt.Exp.Group.Measure.Count = as.numeric(replace(Pt.Exp.Group.Measure.Count, Pt.Exp.Group.Measure.Count == "Not Available", NA)))
+
+dataset_clean <- dataset %>%
+  filter(!is.na(Pt.Exp.Group.Measure.Count))
+
+ggplot(dataset_clean, aes(x = EHR_Usage, y = Pt.Exp.Group.Measure.Count, fill = EHR_Usage)) +
+  geom_boxplot() +
+  labs(title = "Patient Experience Group Measure Count by EHR Usage",
+       x = "EHR Usage",
+       y = "Patient Experience Measure Count") +
+  theme_minimal() +
+  scale_fill_manual(values = c("EHR" = "lightblue", "no-EHR" = "pink"))
+
+
+```
+
+```{r}
+
+dataset <- dataset %>%
+  mutate(TE.Group.Measure.Count = as.numeric(replace(TE.Group.Measure.Count, TE.Group.Measure.Count == "Not Available", NA)))
+
+dataset_clean <- dataset %>%
+  filter(!is.na(TE.Group.Measure.Count))
+
+ggplot(dataset_clean, aes(x = EHR_Usage, y = TE.Group.Measure.Count, fill = EHR_Usage)) +
+  geom_boxplot() +
+  labs(title = "Timely and Effective Care Group Measure Count by EHR Usage",
+       x = "EHR Usage",
+       y = "Timely and Effective Care Measure Count") +
+  theme_minimal() +
+  scale_fill_manual(values = c("EHR" = "lightblue", "no-EHR" = "pink"))
+
+
+```
+
+```{r}
+
+dataset <- dataset %>%
+  mutate(Count.of.Safety.Measures.Better = as.numeric(replace(Count.of.Safety.Measures.Better, Count.of.Safety.Measures.Better == "Not Available", NA)))
+
+dataset_clean <- dataset %>%
+  filter(!is.na(Count.of.Safety.Measures.Better))
+
+ggplot(dataset_clean, aes(x = EHR_Usage, y = Count.of.Safety.Measures.Better, fill = EHR_Usage)) +
+  geom_boxplot() +
+  labs(title = "Count of Safety Measures Better by EHR Usage",
+       x = "EHR Usage",
+       y = "Count of Safety Measures Better") +
+  theme_minimal() +
+  scale_fill_manual(values = c("EHR" = "lightblue", "no-EHR" = "pink"))
+
+```
+```{r}
+
+dataset <- dataset %>%
+  mutate(Count.of.MORT.Measures.Better = as.numeric(replace(Count.of.MORT.Measures.Better, Count.of.MORT.Measures.Better == "Not Available", NA)))
+
+dataset_clean <- dataset %>%
+  filter(!is.na(Count.of.MORT.Measures.Better))
+
+ggplot(dataset_clean, aes(x = EHR_Usage, y = Count.of.MORT.Measures.Better, fill = EHR_Usage)) +
+  geom_boxplot() +
+  labs(title = "Count of Mortality Measures Better by EHR Usage",
+       x = "EHR Usage",
+       y = "Count of Mortality Measures Better") +
+  theme_minimal() +
+  scale_fill_manual(values = c("EHR" = "lightblue", "no-EHR" = "pink"))
+
+```
+
+```{r}
+
+dataset <- dataset %>%
+  mutate(Count.of.READM.Measures.Worse = as.numeric(replace(Count.of.READM.Measures.Worse, Count.of.READM.Measures.Worse == "Not Available", NA)))
+
+dataset_clean <- dataset %>%
+  filter(!is.na(Count.of.READM.Measures.Worse))
+
+ggplot(dataset_clean, aes(x = EHR_Usage, y = Count.of.READM.Measures.Worse, fill = EHR_Usage)) +
+  geom_boxplot() +
+  labs(title = "Count of READM Measures Worse by EHR Usage",
+       x = "EHR Usage",
+       y = "Count of READM Measures Worse") +
+  theme_minimal() +
+  scale_fill_manual(values = c("EHR" = "lightblue", "no-EHR" = "pink"))
+
+```
+```{r}
+
+dataset <- dataset %>%
+  mutate(Count.of.READM.Measures.No.Different = as.numeric(replace(Count.of.READM.Measures.No.Different, Count.of.READM.Measures.No.Different == "Not Available", NA)))
+
+dataset_clean <- dataset %>%
+  filter(!is.na(Count.of.READM.Measures.No.Different))
+
+ggplot(dataset_clean, aes(x = EHR_Usage, y = Count.of.READM.Measures.No.Different, fill = EHR_Usage)) +
+  geom_boxplot() +
+  labs(title = "Count of READM Measures No Different by EHR Usage",
+       x = "EHR Usage",
+       y = "Count of READM Measures No Different") +
+  theme_minimal() +
+  scale_fill_manual(values = c("EHR" = "lightblue", "no-EHR" = "pink"))
+
+```
+Revised visualization:
+```{r}
+
+library(tidyr) 
+
+# ensure columns are numeric
+dataset <- dataset %>%
+  mutate(
+    Count.of.READM.Measures.Better = as.numeric(replace(Count.of.READM.Measures.Better, Count.of.READM.Measures.Better == "Not Available", NA)),
+    Count.of.READM.Measures.Worse = as.numeric(replace(Count.of.READM.Measures.Worse, Count.of.READM.Measures.Worse == "Not Available", NA)),
+    Count.of.READM.Measures.No.Different = as.numeric(replace(Count.of.READM.Measures.No.Different, Count.of.READM.Measures.No.Different == "Not Available", NA))
+  )
+
+# summarize the data by EHR_Usage
+summary_data <- dataset %>%
+  group_by(EHR_Usage) %>%
+  summarise(
+    Better = sum(Count.of.READM.Measures.Better, na.rm = TRUE),
+    Worse = sum(Count.of.READM.Measures.Worse, na.rm = TRUE),
+    No_Different = sum(Count.of.READM.Measures.No.Different, na.rm = TRUE)
+  )
+
+summary_data_long <- summary_data %>%
+  pivot_longer(cols = c(Better, Worse, No_Different), 
+               names_to = "Measure", 
+               values_to = "Count")
+
+ggplot(summary_data_long, aes(x = EHR_Usage, y = Count, fill = Measure)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  labs(title = "Comparison of READM Measures by EHR Usage",
+       x = "EHR Usage",
+       y = "Count of Measures",
+       fill = "Measure Type") +
+  theme_minimal() +
+  scale_fill_manual(values = c("Better" = "lightblue", "Worse" = "pink", "No_Different" = "lightgreen"))
+
+
+```
+
+```{r}
+
+summary_data <- dataset %>%
+  group_by(EHR_Usage) %>%
+  summarise(
+    Better = sum(Count.of.READM.Measures.Better, na.rm = TRUE),
+    Worse = sum(Count.of.READM.Measures.Worse, na.rm = TRUE),
+    No_Different = sum(Count.of.READM.Measures.No.Different, na.rm = TRUE),
+    Total = Better + Worse + No_Different, 
+    Ratio_Better = Better / Total,
+    Ratio_Worse = Worse / Total,
+    Ratio_No_Different = No_Different / Total
+  )
+print(summary_data)
+
+```
+
